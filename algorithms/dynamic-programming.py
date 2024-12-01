@@ -11,7 +11,7 @@ class VerticalRectangle(Scene):
         lines = []
         text = Text(s)
         # self.play(Write(text), run_time=1)
-        self.play(Write(NumberPlane().add_coordinates()), run_time=1)
+        # self.play(Write(NumberPlane().add_coordinates()), run_time=1)
         self.wait(2)
         self.play(Write(text), run_time=1)
         self.play(text.animate.move_to([-3,-2, 0]), run_time=2)
@@ -152,14 +152,15 @@ class VerticalRectangle(Scene):
         root_label = Text("5").scale(0.5).move_to(pos)
 
         # Animate creating the root node
-        self.play(Create(rooot), Write(root_label))
+        self.add(rooot)
+        self.add(root_label)
 
         # Define children position offsets
         left_position = pos + LEFT * 3 + DOWN * 2
         right_position = pos + RIGHT * 3 + DOWN * 2
 
-        self.play(Create(self.get_line_pos(pos, left_position)))
-        self.play(Create(self.get_line_pos(pos, right_position)))
+        self.add(self.get_line_pos(pos, left_position))
+        self.add(self.get_line_pos(pos, right_position))
        
         self.wait(2)
 
@@ -175,7 +176,8 @@ class VerticalRectangle(Scene):
         root_label = Text(root_value).scale(0.5).move_to(position)
 
         # Animate creating the root node
-        self.play(Create(root_node), Write(root_label))
+        self.add(root_node) 
+        self.add(root_label)
 
         # Define children position offsets
         left_position = position + LEFT * 1 + DOWN * 1
@@ -185,15 +187,17 @@ class VerticalRectangle(Scene):
         left_node = Circle(radius=0.3).move_to(left_position)
         left_label = Text(left_val).scale(0.5).move_to(left_position)
 
-        self.play(Create(Line(position + DOWN * 0.3, left_position + UP * 0.3)))  # Start from above the root
-        self.play(Create(left_node), Write(left_label))
+        self.add(Line(position + DOWN * 0.3, left_position + UP * 0.3))  # Start from above the root
+        self.add(left_node)
+        self.add(left_label)
 
         # Draw right child (D)
         right_node = Circle(radius=0.3).move_to(right_position)
         right_label = Text(right_val).scale(0.5).move_to(right_position)
 
-        self.play(Create(Line(position + DOWN * 0.3, right_position + UP * 0.3)))
-        self.play(Create(right_node), Write(right_label))
+        self.add(Line(position + DOWN * 0.3, right_position + UP * 0.3))
+        self.add(right_node)
+        self.add(right_label)
 
         # Return the root node to complete the tree drawing
         return root_node
