@@ -3,10 +3,13 @@ import minigrid
 import numpy as np
 import torch
 import torch.nn as nn
+from stable_baselines3.common.sb2_compat.rmsprop_tf_like import RMSpropTFLike
 import torch.optim as optim
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, A2C, DQN
 from minigrid.wrappers import ImgObsWrapper
+import os
+
 
 class MinigridFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space, features_dim: int = 512, normalized_image: bool = False) -> None:
@@ -21,7 +24,6 @@ class MinigridFeaturesExtractor(BaseFeaturesExtractor):
             nn.ReLU(),
             nn.Flatten(),
         )
-
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
@@ -33,11 +35,40 @@ class MinigridFeaturesExtractor(BaseFeaturesExtractor):
 
 policy_kwargs = dict(
     features_extractor_class=MinigridFeaturesExtractor,
-    features_extractor_kwargs=dict(features_dim=128),
+    features_extractor_kwargs=dict(features_dim=128)
 )
-
 env = gym.make("MiniGrid-Empty-8x8-v0", render_mode="human")
 env = ImgObsWrapper(env)
 
-model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
-model.learn(2e5)
+logdir = 'minigrid/logs'
+modeldir = 'minigrid/models/dqn'
+modelpath = f'{modeldir}/90000.zip'
+
+if not os.path.exists(logdir):
+    os.makedirs(logdir)
+
+if not os.path.exists(modeldir):
+    os.makedirs(modeldir)
+
+
+# steps = 10000
+
+# model = DQN("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
+
+# for i in range (1,100):
+#     model.learn(total_timesteps=steps, reset_num_timesteps=False, tb_log_name='DQN')
+#     model.save(f"{modeldir}/{steps*i}")
+
+model = DQN.load(modelpath, env)
+
+eps = 20
+
+for ep in range (eps):
+    obs, _ = env.reset()
+    done = False
+    while not done:
+        env.render()
+        action, _ = model.predict(obs)
+        print(action)
+        obs, reward, done, info, _ = env.step(action)
+env.close()
