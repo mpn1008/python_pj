@@ -37,12 +37,16 @@ policy_kwargs = dict(
     features_extractor_class=MinigridFeaturesExtractor,
     features_extractor_kwargs=dict(features_dim=128)
 )
-env = gym.make("MiniGrid-Empty-8x8-v0", render_mode="human")
+env = gym.make("MiniGrid-BlockedUnlockPickup-v0", render_mode="human")
 env = ImgObsWrapper(env)
+# print(env.observation_space)
+# print(env.observation_space.shape)
+# print(env.observation_space.shape[0])
+
 
 logdir = 'minigrid/logs'
-modeldir = 'minigrid/models/dqn'
-modelpath = f'{modeldir}/90000.zip'
+modeldir = 'minigrid/models/ppo'
+modelpath = f'{modeldir}/110000.zip'
 
 if not os.path.exists(logdir):
     os.makedirs(logdir)
@@ -51,15 +55,15 @@ if not os.path.exists(modeldir):
     os.makedirs(modeldir)
 
 
-# steps = 10000
+steps = 10000
 
-# model = DQN("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
+# model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
 
 # for i in range (1,100):
-#     model.learn(total_timesteps=steps, reset_num_timesteps=False, tb_log_name='DQN')
+#     model.learn(total_timesteps=steps, reset_num_timesteps=False, tb_log_name='PPO')
 #     model.save(f"{modeldir}/{steps*i}")
 
-model = DQN.load(modelpath, env)
+model = PPO.load(modelpath, env)
 
 eps = 20
 
@@ -68,7 +72,7 @@ for ep in range (eps):
     done = False
     while not done:
         env.render()
-        action, _ = model.predict(obs)
-        print(action)
-        obs, reward, done, info, _ = env.step(action)
+        # action, _ = model.predict(obs)
+        # print(action)
+        obs, reward, done, info, _ = env.step(env.action_space.sample())
 env.close()

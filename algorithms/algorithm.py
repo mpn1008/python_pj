@@ -49,7 +49,7 @@
 #
 # print(binary_search(numbers, 150))
 
-from showcallstack import showcallstack
+
 def fibo(n, mem = None):
 
     if mem is None:
