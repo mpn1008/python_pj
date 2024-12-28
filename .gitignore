@@ -2,3 +2,10 @@ venv
 *.xml
 *.iml
 .idea
+algorithms/media
+media/*
+.DS_Store
+*/.ipynb_checkpoints/*
+.ipynb_checkpoints
+minigrid
+*/__pycache__
