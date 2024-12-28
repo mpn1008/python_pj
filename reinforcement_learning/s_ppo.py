@@ -41,9 +41,6 @@ class DoorObsWrapper(ObservationWrapper):
         }
         
     def extract_color(self, input_string):
-
-    # Define a pattern to match color words
-    # This example assumes common color names (you can modify it as needed)
         color_pattern = r'\b(red|blue|green|yellow|purple|grey)\b'
         
         # Search for the pattern in the input string
@@ -205,71 +202,3 @@ for ep in range (100):
             continue
 
 env.close()
-
-# def main():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--train", action="store_true", help="train the model")
-#     parser.add_argument("--load_model", default="minigrid_door_20230418-174509")
-#     parser.add_argument("--render", action="store_true", help="render trained models")
-#     args = parser.parse_args()
-
-#     policy_kwargs = dict(features_extractor_class=DoorEnvExtractor)
-
-#     # Create time stamp of experiment
-#     stamp = datetime.fromtimestamp(time()).strftime("%Y%m%d-%H%M%S")
-
-#     if args.train:
-#         env = gym.make("MiniGrid-GoToDoor-8x8-v0")
-#         env = DoorObsWrapper(env)
-
-#         checkpoint_callback = CheckpointCallback(
-#             save_freq=1e5,
-#             save_path=f"./models/ppo/minigrid_door_{stamp}/",
-#             name_prefix="iter",
-#         )
-
-#         model = PPO(
-#             "MultiInputPolicy",
-#             env,
-#             policy_kwargs=policy_kwargs,
-#             verbose=1,
-#             tensorboard_log="./logs/ppo/minigrid_door_tensorboard/",
-#         )
-#         model.learn(
-#             2e6,
-#             tb_log_name=f"{stamp}",
-#             callback=checkpoint_callback,
-#         )
-#     else:
-#         if args.render:
-#             env = gym.make("MiniGrid-GoToDoor-8x8-v0", render_mode="human")
-#         else:
-#             env = gym.make("MiniGrid-GoToDoor-8x8-v0")
-#         env = DoorObsWrapper(env)
-
-#     ppo = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
-
-#     # add the experiment time stamp
-#     ppo = ppo.load(f"models/ppo/{args.load_model}", env=env)
-
-#     obs, info = env.reset()
-#     rewards = 0
-
-#     for i in range(2000):
-#         action, _state = ppo.predict(obs, deterministic=True)
-#         obs, reward, terminated, truncated, info = env.step(action)
-#         rewards += reward
-
-#         if terminated or truncated:
-#             print(f"Test reward: {rewards}")
-#             obs, info = env.reset()
-#             rewards = 0
-#             continue
-
-#     print(f"Test reward: {rewards}")
-
-#     env.close()
-
-
-# if __name__ == "__main__":
-#     main()
