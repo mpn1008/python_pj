@@ -1,9 +1,7 @@
 from datetime import datetime
-from pdb import set_trace
+# from pdb import set_trace
 from time import time
 import re
-import time
-
 import gymnasium as gym
 import minigrid
 import numpy as np
@@ -11,7 +9,7 @@ import torch as th
 import torch.nn as nn
 from gymnasium.core import ObservationWrapper
 from gymnasium.spaces import Box, Dict
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
@@ -131,13 +129,13 @@ policy_kwargs = dict(features_extractor_class=DoorEnvExtractor)
     # Create time stamp of experiment
 # stamp = datetime.fromtimestamp(time()).strftime("%Y%m%d-%H%M%S")
 
-
+# print(stamp)
 # env = gym.make("MiniGrid-GoToDoor-8x8-v0")
 # env = DoorObsWrapper(env)
 
 # checkpoint_callback = CheckpointCallback(
 #     save_freq=5e4,
-#     save_path=f"./models/ppo/minigrid_door_2/",
+#     save_path=f"./models/ppo/minigrid_door_{stamp}/",
 #     name_prefix="iter",
 # )
 
@@ -149,11 +147,10 @@ policy_kwargs = dict(features_extractor_class=DoorEnvExtractor)
 #     tensorboard_log="./logs/ppo/minigrid_door_tensorboard/",
 # )
 # model.learn(
-#     2e6,
-#     tb_log_name=f"DOOR_PPO",
+#     3e6,
+#     tb_log_name=f"DOOR_PPO_{stamp}",
 #     callback=checkpoint_callback,
 # )
-
 
 
 env = gym.make("MiniGrid-GoToDoor-8x8-v0", render_mode="human")
@@ -164,7 +161,7 @@ env = DoorObsWrapper(env)
 ppo = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
 
 # add the experiment time stamp
-ppo = ppo.load(f"models/ppo/minigrid_door_2/iter_1800000_steps.zip", env=env)
+ppo = ppo.load(f"models/ppo/minigrid_door_20241229-171714/iter_2500000_steps.zip", env=env)
 
 obs, info = env.reset()
 rewards = 0
@@ -188,10 +185,11 @@ rewards = 0
 
 for ep in range (100):
     obs, _ = env.reset()
+    
     terminated = False
     while not terminated:
         env.render()
-        action, _ = ppo.predict(obs, deterministic=False)
+        action, _ = ppo.predict(obs)
         print(action)
         obs, reward, terminated, truncated, info = env.step(action)
         rewards += reward
