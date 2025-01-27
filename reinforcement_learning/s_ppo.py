@@ -1,7 +1,8 @@
 from datetime import datetime
-# from pdb import set_trace
 from time import time
 import re
+import numpy as np
+
 import gymnasium as gym
 import minigrid
 import numpy as np
@@ -15,11 +16,8 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class DoorObsWrapper(ObservationWrapper):
+#original feature extractor from: https://github.com/BolunDai0216/MinigridMiniworldTransfer/tree/main
     def __init__(self, env):
-        """A wrapper that makes image the only observation.
-        Args:
-            env: The environment to apply the wrapper
-        """
         super().__init__(env)
 
         self.observation_space = Dict(
@@ -41,11 +39,10 @@ class DoorObsWrapper(ObservationWrapper):
     def extract_color(self, input_string):
         color_pattern = r'\b(red|blue|green|yellow|purple|grey)\b'
         
-        # Search for the pattern in the input string
         match = re.search(color_pattern, input_string, re.IGNORECASE)
         
         if match:
-            return match.group(0)  # Return the matched color
+            return match.group(0)  
         else:
             return None  # No color found
     
@@ -65,6 +62,7 @@ class DoorObsWrapper(ObservationWrapper):
 
 class DoorEnvExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: Dict):
+        print(f"observation_space={observation_space.spaces}")
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
@@ -77,10 +75,13 @@ class DoorEnvExtractor(BaseFeaturesExtractor):
         # so go over all the spaces and compute output feature sizes
         for key, subspace in observation_space.spaces.items():
             if key == "image":
+                n_input_channels = subspace.shape[0]
+                # print(f"n_input_channels={subspace.shape}")
+                # print(f"observation_space={observation_space.spaces}")
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
                 cnn = nn.Sequential(
-                    nn.Conv2d(3, 16, (2, 2)),
+                    nn.Conv2d(n_input_channels, 16, (2, 2)),
                     nn.ReLU(),
                     nn.Conv2d(16, 32, (2, 2)),
                     nn.ReLU(),
@@ -91,6 +92,7 @@ class DoorEnvExtractor(BaseFeaturesExtractor):
 
                 # Compute shape by doing one forward pass
                 with th.no_grad():
+                    # print(th.as_tensor(subspace.sample()[None]))
                     n_flatten = cnn(
                         th.as_tensor(subspace.sample()[None]).float()
                     ).shape[1]
@@ -125,78 +127,59 @@ class DoorEnvExtractor(BaseFeaturesExtractor):
 
 
 policy_kwargs = dict(features_extractor_class=DoorEnvExtractor)
+stamp = datetime.fromtimestamp(time()).strftime("%Y%m%d-%H%M%S")
 
-    # Create time stamp of experiment
-# stamp = datetime.fromtimestamp(time()).strftime("%Y%m%d-%H%M%S")
+def train():
+    env = gym.make("MiniGrid-GoToDoor-8x8-v0")
+    env = DoorObsWrapper(env)
 
-# print(stamp)
-# env = gym.make("MiniGrid-GoToDoor-8x8-v0")
-# env = DoorObsWrapper(env)
+    checkpoint_callback = CheckpointCallback(
+        save_freq=8e4,
+        save_path=f"./models/ppo/minigrid_door_{stamp}/",
+        name_prefix="iter",
+    )
 
-# checkpoint_callback = CheckpointCallback(
-#     save_freq=5e4,
-#     save_path=f"./models/ppo/minigrid_door_{stamp}/",
-#     name_prefix="iter",
-# )
-
-# model = PPO(
-#     "MultiInputPolicy",
-#     env,
-#     policy_kwargs=policy_kwargs,
-#     verbose=1,
-#     tensorboard_log="./logs/ppo/minigrid_door_tensorboard/",
-# )
-# model.learn(
-#     3e6,
-#     tb_log_name=f"DOOR_PPO_{stamp}",
-#     callback=checkpoint_callback,
-# )
+    model = PPO(
+        "MultiInputPolicy",
+        env,
+        policy_kwargs=policy_kwargs,
+        verbose=1,
+        tensorboard_log="./logs/ppo/minigrid_door_tensorboard/",
+    )
+    model.learn(
+        4e6,
+        tb_log_name=f"DOOR_PPO_{stamp}",
+        callback=checkpoint_callback,
+    )
 
 
-env = gym.make("MiniGrid-GoToDoor-8x8-v0", render_mode="human")
+def test():
+    env = gym.make("MiniGrid-GoToDoor-8x8-v0", render_mode="human")
+
+    env = DoorObsWrapper(env)
+
+    ppo = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
 
 
-env = DoorObsWrapper(env)
+    # add the experiment time stamp
+    ppo = ppo.load(f"models/ppo/final/iter_1200000_steps.zip", env=env)
 
-ppo = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
+    obs, info = env.reset()
+    rewards = 0
 
-# add the experiment time stamp
-ppo = ppo.load(f"models/ppo/minigrid_door_20241229-171714/iter_2500000_steps.zip", env=env)
+    while True:
+        obs, _ = env.reset()
+        
+        terminated = False
+        while not terminated:
+            env.render()
+            action, _ = ppo.predict(obs)
+            print(action)
+            obs, reward, terminated, truncated, info = env.step(action)
+            rewards += reward
+            if terminated or truncated:
+                print(f"Test reward: {rewards}")
+                obs, info = env.reset()
+                rewards = 0
+                continue
 
-obs, info = env.reset()
-rewards = 0
-
-# for i in range(2000):
-#     action, _state = ppo.predict(obs)
-#     print(action)
-#     obs, reward, terminated, truncated, info = env.step(action)
-#     rewards += reward
-#     # time.sleep(0.2) 
-
-#     if terminated or truncated:
-#         print(f"Test reward: {rewards}")
-#         obs, info = env.reset()
-#         rewards = 0
-#         continue
-
-# print(f"Test reward: {rewards}")
-
-# env.close()
-
-for ep in range (100):
-    obs, _ = env.reset()
-    
-    terminated = False
-    while not terminated:
-        env.render()
-        action, _ = ppo.predict(obs)
-        print(action)
-        obs, reward, terminated, truncated, info = env.step(action)
-        rewards += reward
-        if terminated or truncated:
-            print(f"Test reward: {rewards}")
-            obs, info = env.reset()
-            rewards = 0
-            continue
-
-env.close()
